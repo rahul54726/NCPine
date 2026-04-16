@@ -1,0 +1,11 @@
+CREATE TABLE payment_records (
+    id BIGSERIAL PRIMARY KEY,
+    booking_id VARCHAR(255) NOT NULL,
+    amount DOUBLE PRECISION NOT NULL,
+    razorpay_order_id VARCHAR(255) NOT NULL UNIQUE,
+    razorpay_payment_id VARCHAR(255),
+    razorpay_signature VARCHAR(500),
+    status VARCHAR(50) DEFAULT 'CREATED',
+    created_at TIMESTAMP WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);

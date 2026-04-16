@@ -1,0 +1,150 @@
+version: '3.8'
+
+# 1. EXPLICIT NETWORK: Taaki containers ek dusre ka naam (e.g., 'user-service') easily resolve kar sakein
+networks:
+  npcine_net:
+    driver: bridge
+
+services:
+  # ========================================
+  # 1. DATABASES & CACHE & MESSAGE BROKER
+  # ========================================
+  postgres_db:
+    image: postgres:15-alpine
+    container_name: postgres_db
+    restart: unless-stopped # Crash hone par auto-restart
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: root
+      POSTGRES_DB: npcine_db
+    ports:
+      - "5432:5432"
+    networks:
+      - npcine_net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d npcine_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  rabbitmq_broker:
+    image: rabbitmq:3-management-alpine
+    container_name: rabbitmq_broker
+    restart: unless-stopped
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    networks:
+      - npcine_net
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis_cache:
+    image: redis:alpine
+    container_name: redis_cache
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    networks:
+      - npcine_net
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # ========================================
+  # 2. MICROSERVICES
+  # ========================================
+  user-service:
+    build: ./user-service
+    container_name: user-service
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    networks:
+      - npcine_net
+    depends_on:
+      rabbitmq_broker:
+        condition: service_healthy
+    environment:
+      - SPRING_RABBITMQ_HOST=rabbitmq_broker
+
+  booking-service:
+    build: ./booking-service
+    container_name: booking-service
+    restart: unless-stopped
+    ports:
+      - "8082:8082"
+    networks:
+      - npcine_net
+    depends_on:
+      postgres_db:
+        condition: service_healthy
+      rabbitmq_broker:
+        condition: service_healthy
+      redis_cache:
+        condition: service_healthy
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres_db:5432/npcine_db
+      - SPRING_DATASOURCE_USERNAME=postgres
+      - SPRING_DATASOURCE_PASSWORD=root
+      - SPRING_JPA_DATABASE_PLATFORM=org.hibernate.dialect.PostgreSQLDialect
+      - SPRING_RABBITMQ_HOST=rabbitmq_broker
+      - SPRING_DATA_REDIS_HOST=redis_cache
+      - SPRING_DATA_REDIS_PORT=6379
+
+  payment-service:
+    build: ./payment-service
+    container_name: payment-service
+    restart: unless-stopped
+    ports:
+      - "8083:8083"
+    networks:
+      - npcine_net
+    depends_on:
+      postgres_db:
+        condition: service_healthy
+      rabbitmq_broker:
+        condition: service_healthy
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres_db:5432/npcine_db
+      - SPRING_DATASOURCE_USERNAME=postgres
+      - SPRING_DATASOURCE_PASSWORD=root
+      - SPRING_JPA_DATABASE_PLATFORM=org.hibernate.dialect.PostgreSQLDialect
+      - SPRING_RABBITMQ_HOST=rabbitmq_broker
+
+  notification-service:
+    build: ./notification_service
+    container_name: notification-service
+    restart: unless-stopped
+    ports:
+      - "8084:8084"
+    networks:
+      - npcine_net
+    depends_on:
+      rabbitmq_broker:
+        condition: service_healthy
+    environment:
+      - SPRING_RABBITMQ_HOST=rabbitmq_broker
+
+  # ========================================
+  # 3. API GATEWAY (Must start LAST)
+  # ========================================
+  api-gateway:
+    build: ./api-gateway
+    container_name: api-gateway
+    restart: unless-stopped
+    ports:
+      - "8081:8081"
+    networks:
+      - npcine_net
+    depends_on:
+      # THE FIX: Gateway tab tak route nahi kar sakta jab tak services up na hon
+      - user-service
+      - booking-service
+      - payment-service
+      - notification-service

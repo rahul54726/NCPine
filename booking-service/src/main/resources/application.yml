@@ -1,0 +1,60 @@
+server:
+  port: ${PORT:8082} #
+
+spring:
+  application:
+    name: booking-service
+
+  datasource:
+    # Use environment variables for sensitive DB info
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5433}/${DB_NAME:cinebook_booking_db}
+    username: ${DB_USERNAME:cinebook}
+    password: ${DB_PASSWORD:cinebook123}
+    driver-class-name: org.postgresql.Driver
+    # Production pool settings
+    hikari:
+      maximum-pool-size: 10 # Limits DB connections
+      connection-timeout: 20000
+      idle-timeout: 300000
+
+  jpa:
+    hibernate:
+      # SWITCH: Change 'update' to 'validate' for Flyway safety
+      ddl-auto: update
+    show-sql: false # Turn off in production for performance
+    properties:
+      hibernate:
+        format_sql: false
+        jdbc:
+          time_zone: UTC
+
+  flyway:
+    enabled: true
+    baseline-on-migrate: true # Crucial for existing Docker databases
+
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:} # Leave empty for local, set in prod
+      timeout: 2000ms
+
+jwt:
+  secret: ${JWT_SECRET:1JwCQ6Ipyd1CxytJccCkB754iRXoRlEly0HujDiqgkRZ4ZlmIUasTMwFhgl9kYep}
+  expiration: ${JWT_EXPIRATION:86400000}
+
+# Production Logging
+logging:
+  level:
+    root: INFO
+    com.rahul.cinebook: DEBUG # Only your app logs in detail
+    org.hibernate.SQL: ERROR
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health, info, actuator # "*" bhi likh sakte ho sab open karne ke liye
+  endpoint:
+    health:
+      show-details: always

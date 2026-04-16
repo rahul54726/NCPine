@@ -1,0 +1,41 @@
+razorpay:
+  key:
+    id: rzp_test_your_key_id_here
+    secret: your_key_secret_here
+server:
+  port: 8083
+spring:
+  application:
+    name: payment-service
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5433}/${DB_NAME:cinebook_payment_db}
+    username: ${DB_USERNAME:cinebook}
+    password: ${DB_PASSWORD:cinebook123}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 10 # Limits DB connections
+      connection-timeout: 20000
+      idle-timeout: 300000
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: false
+        jdbc:
+          time_zone: UTC
+
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+
+logging:
+  level:
+    root: INFO
+    com.rahul.cinebook: DEBUG # Only your app logs in detail
+    org.hibernate.SQL: ERROR
+
+#jwt here
+jwt:
+  secret: 1JwCQ6Ipyd1CxytJccCkB754iRXoRlEly0HujDiqgkRZ4ZlmIUasTMwFhgl9kYep

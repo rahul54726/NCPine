@@ -1,0 +1,43 @@
+server:
+  port: 8084
+spring:
+  application:
+    name: notification_service
+
+  rabbitmq:
+    host: ${SPRING_RABBITMQ_HOST:rabbitmq_broker}
+    port: ${SPRING_RABBITMQ_PORT:5672}
+    username: ${SPRING_RABBITMQ_USERNAME:guest}
+    password: ${SPRING_RABBITMQ_PASSWORD:guest}
+
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: vermarahul11034@gmail.com
+    password: jwcysaxtkxgyivws
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+
+# Actuator Configuration
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,env  # Kon-kon se endpoints open karne hain
+  endpoint:
+    health:
+      show-details: always
+  info:
+    env:
+      enabled: true
+
+# Optional: Info endpoint ke liye thodi custom detail
+info:
+  app:
+    name: "NPCine Notification Service"
+    description: "Handles asynchronous email notifications via RabbitMQ"
+    version: "1.0.0"
