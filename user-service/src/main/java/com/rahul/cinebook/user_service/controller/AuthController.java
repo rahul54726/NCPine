@@ -6,7 +6,6 @@ import com.rahul.cinebook.user_service.dto.RegisterRequest;
 import com.rahul.cinebook.user_service.service.AuthService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;

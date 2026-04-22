@@ -13,6 +13,14 @@ public class Seat {
     private String id;
     private String showTimeId;
     private String seatNumber;
+    private Double price;
     @Enumerated(EnumType.STRING)
     private SeatStatus status;
+
+    @PrePersist
+    public void onCreate() {
+        if (price == null) {
+            price = 250.0;
+        }
+    }
 }

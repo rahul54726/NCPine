@@ -1,5 +1,3 @@
-version: '3.8'
-
 # 1. EXPLICIT NETWORK: Taaki containers ek dusre ka naam (e.g., 'user-service') easily resolve kar sakein
 networks:
   npcine_net:
@@ -72,6 +70,20 @@ services:
         condition: service_healthy
     environment:
       - SPRING_RABBITMQ_HOST=rabbitmq_broker
+      - SPRING_MONGODB_URI=${MONGO_CLUSTER_BASE_URI:-mongodb+srv://rahul23256:HkPpPssSIpJPdgUY@cluster0.qe3y3wr.mongodb.net}/user_db?appName=Cluster0
+      - SECURITY_ADMIN_EMAILS=${SECURITY_ADMIN_EMAILS:-admin@npcine.com}
+
+  movies-service:
+    build: ./movies-service
+    container_name: movies-service
+    restart: unless-stopped
+    networks:
+      - npcine_net
+    depends_on:
+      rabbitmq_broker:
+        condition: service_healthy
+    environment:
+      - SPRING_DATA_MONGODB_URI=${MONGO_CLUSTER_BASE_URI:-mongodb+srv://rahul23256:HkPpPssSIpJPdgUY@cluster0.qe3y3wr.mongodb.net}/movie_db?appName=Cluster0
 
   booking-service:
     build: ./booking-service
@@ -145,6 +157,7 @@ services:
     depends_on:
       # THE FIX: Gateway tab tak route nahi kar sakta jab tak services up na hon
       - user-service
+      - movies-service
       - booking-service
       - payment-service
       - notification-service

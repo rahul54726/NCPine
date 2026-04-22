@@ -1,7 +1,6 @@
 package com.rahul.cinebook.booking_service.config;
 
 import com.rahul.cinebook.booking_service.filter.JwtAuthenticationFilter;
-import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -30,7 +29,6 @@ public class SecurityConfig {
                         // 1. Actuator aur Health check ko hamesha pehle allow karo
                         .requestMatchers("/actuator/**").permitAll()
                         .requestMatchers("/bookings/health").permitAll()
-                        .requestMatchers("/catalog/**").permitAll()
 
                         // 2. Baaki saare /bookings endpoints ke liye authentication zaroori hai
                         .requestMatchers("/admin/**", "/bookings/**").authenticated()

@@ -4,15 +4,21 @@ import com.rahul.cinebook.user_service.dto.AuthResponse;
 import com.rahul.cinebook.user_service.dto.LoginRequest;
 import com.rahul.cinebook.user_service.dto.RegisterRequest;
 import com.rahul.cinebook.user_service.entity.User;
+import com.rahul.cinebook.user_service.entity.UserRole;
 import com.rahul.cinebook.user_service.repository.UserRepo;
 import com.rahul.cinebook.user_service.util.JwtUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Lazy;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+
+import java.util.Arrays;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -23,6 +29,7 @@ public class AuthService {
     private final JwtUtil jwtUtil;
     private final EmailService emailService;
     private final AuthenticationManager authenticationManager;
+    private final Set<String> adminEmails;
 
     /**
      * Fix: Manual constructor with @Lazy is the ONLY way to stop the StackOverflowError.
@@ -32,12 +39,18 @@ public class AuthService {
                        PasswordEncoder passwordEncoder,
                        JwtUtil jwtUtil,
                        EmailService emailService,
+                       @Value("${security.admin.emails:admin@npcine.com}") String adminEmails,
                        @Lazy AuthenticationManager authenticationManager) {
         this.userRepo = userRepo;
         this.passwordEncoder = passwordEncoder;
         this.jwtUtil = jwtUtil;
         this.emailService = emailService;
         this.authenticationManager = authenticationManager;
+        this.adminEmails = Arrays.stream(adminEmails.split(","))
+                .map(String::trim)
+                .filter(value -> !value.isBlank())
+                .map(String::toLowerCase)
+                .collect(Collectors.toSet());
     }
 
     public AuthResponse register(RegisterRequest request) {
@@ -50,6 +63,7 @@ public class AuthService {
         user.setEmail(request.getEmail());
         user.setPassword(passwordEncoder.encode(request.getPassword()));
         user.setEnabled(true);
+        user.setRole(resolveRoleForEmail(user.getEmail()));
 
         userRepo.save(user);
 
@@ -59,7 +73,8 @@ public class AuthService {
             log.error("Email failed: {}", e.getMessage());
         }
 
-        return new AuthResponse(jwtUtil.generateToken(user.getEmail()));
+        String token = jwtUtil.generateToken(user.getEmail(), user.getRole());
+        return new AuthResponse(token, user.getRole().name());
     }
 
     public AuthResponse login(LoginRequest request) {
@@ -71,6 +86,21 @@ public class AuthService {
             throw new BadCredentialsException("Invalid credentials");
         }
 
-        return new AuthResponse(jwtUtil.generateToken(request.getEmail()));
+        User user = userRepo.findByEmail(request.getEmail())
+                .orElseThrow(() -> new BadCredentialsException("Invalid credentials"));
+        UserRole resolvedRole = resolveRoleForEmail(user.getEmail());
+        if (user.getRole() == null || user.getRole() != resolvedRole) {
+            user.setRole(resolvedRole);
+            userRepo.save(user);
+        }
+        String token = jwtUtil.generateToken(user.getEmail(), user.getRole());
+        return new AuthResponse(token, user.getRole().name());
+    }
+
+    private UserRole resolveRoleForEmail(String email) {
+        if (email == null) {
+            return UserRole.USER;
+        }
+        return adminEmails.contains(email.toLowerCase()) ? UserRole.ADMIN : UserRole.USER;
     }
 }

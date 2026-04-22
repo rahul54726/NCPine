@@ -30,4 +30,6 @@ public interface BookingRepo extends JpaRepository<Booking, String> {
             BookingStatus status,
             LocalDateTime time
     );
+
+    List<Booking> findByUserEmailOrderByCreatedAtDesc(String userEmail);
 }

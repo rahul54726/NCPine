@@ -28,6 +28,7 @@ public class User {
     @Size(min = 6, message = "Password must be at least 6 characters")
     private String password;
     private boolean enabled = true;
+    private UserRole role = UserRole.USER;
     @CreatedDate
     private LocalDateTime createdAt;
     @LastModifiedDate

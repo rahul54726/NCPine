@@ -12,5 +12,4 @@ WORKDIR /app
 # Copying the freshly built JAR from Stage 1
 COPY --from=build /app/target/*.jar app.jar
 
-# 💥 THE ULTIMATE GOD MODE: Bypassing YAML and forcing Atlas Cloud!
-ENTRYPOINT ["java", "-Dspring.mongodb.uri=mongodb+srv://rahul23256:HkPpPssSIpJPdgUY@cluster0.qe3y3wr.mongodb.net/user_db?retryWrites=true&w=majority", "-jar", "app.jar"]
+ENTRYPOINT ["java", "-jar", "app.jar"]

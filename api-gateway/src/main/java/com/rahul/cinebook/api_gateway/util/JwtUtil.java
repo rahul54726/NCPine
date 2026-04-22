@@ -1,7 +1,6 @@
 package com.rahul.cinebook.api_gateway.util;
 
 import io.jsonwebtoken.Jwts;
-import jakarta.validation.Valid;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.security.Keys;
 import org.springframework.beans.factory.annotation.Value;
@@ -24,6 +23,16 @@ public class JwtUtil {
                 .parseClaimsJws(token)
                 .getBody();
         return claims.getSubject();
+    }
+
+    public String extractRole(String token) {
+        Claims claims = Jwts.parserBuilder()
+                .setSigningKey(getSigningKey())
+                .build()
+                .parseClaimsJws(token)
+                .getBody();
+        Object role = claims.get("role");
+        return role == null ? "USER" : role.toString();
     }
     public boolean isTokenValid(String token){
         try {

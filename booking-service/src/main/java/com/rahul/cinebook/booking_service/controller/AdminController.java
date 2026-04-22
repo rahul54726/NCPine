@@ -35,6 +35,7 @@ public class AdminController {
 //                seat.setId("SEAT-" + UUID.randomUUID().toString().substring(0, 8));
                 seat.setShowTimeId(showId);
                 seat.setSeatNumber(seatNumber);
+                seat.setPrice(250.0);
                 seat.setStatus(SeatStatus.AVAILABLE);
 
                 newSeats.add(seat);

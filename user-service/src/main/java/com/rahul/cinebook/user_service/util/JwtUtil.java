@@ -4,6 +4,7 @@ import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
+import com.rahul.cinebook.user_service.entity.UserRole;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -26,9 +27,10 @@ public class JwtUtil {
         return Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
     }
 
-    public String generateToken(String email) {
+    public String generateToken(String email, UserRole role) {
         return Jwts.builder()
                 .setSubject(email)
+                .claim("role", role == null ? UserRole.USER.name() : role.name())
                 .setIssuedAt(new Date(System.currentTimeMillis()))
                 .setExpiration(new Date(System.currentTimeMillis() + expiration))
                 .signWith(getSigningKey(), SignatureAlgorithm.HS256)
@@ -41,6 +43,11 @@ public class JwtUtil {
 
     public Date extractExpiration(String token) {
         return extractClaim(token, Claims::getExpiration);
+    }
+
+    public String extractRole(String token) {
+        Object role = extractAllClaims(token).get("role");
+        return role == null ? UserRole.USER.name() : role.toString();
     }
 
     public <T> T extractClaim(String token, Function<Claims, T> claimsResolver) {

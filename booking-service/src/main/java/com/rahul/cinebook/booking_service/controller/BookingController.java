@@ -1,6 +1,13 @@
 package com.rahul.cinebook.booking_service.controller;
 
 import com.rahul.cinebook.booking_service.dto.LockSeatsRequest;
+import com.rahul.cinebook.booking_service.dto.MyTicketResponse;
+import com.rahul.cinebook.booking_service.dto.SeatViewResponse;
+import com.rahul.cinebook.booking_service.entity.Booking;
+import com.rahul.cinebook.booking_service.enums.BookingStatus;
+import com.rahul.cinebook.booking_service.repository.BookingRepo;
+import com.rahul.cinebook.booking_service.repository.SeatRepo;
+import com.rahul.cinebook.booking_service.repository.ShowtimeRepo;
 import com.rahul.cinebook.booking_service.service.BookingService;
 import com.rahul.cinebook.booking_service.service.IdempotencyService;
 import com.rahul.cinebook.booking_service.service.SeatLockOrchestrator;
@@ -12,9 +19,11 @@ import org.springframework.web.bind.annotation.*;
 
 import java.security.Principal;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/bookings")
@@ -26,6 +35,12 @@ public class BookingController {
     private  BookingService bookingService;
     @Autowired
     private  IdempotencyService idempotencyService;
+    @Autowired
+    private SeatRepo seatRepo;
+    @Autowired
+    private BookingRepo bookingRepo;
+    @Autowired
+    private ShowtimeRepo showtimeRepo;
     @GetMapping("/health")
     public ResponseEntity<?> health() {
         HashMap<String, String> map = new HashMap<>();
@@ -102,5 +117,49 @@ public class BookingController {
         // Use bookingService instead of seatLockOrchestrator to avoid the cycle
         bookingService.releaseSeats(request.getShowTimeId(), request.getSeatNumbers(), userEmail);
         return new ResponseEntity<>("Seats released", HttpStatus.OK);
+    }
+
+    @GetMapping("/showtimes/{showTimeId}/seats")
+    public ResponseEntity<List<SeatViewResponse>> getSeatsForShowtime(@PathVariable String showTimeId) {
+        var seats = seatRepo.findByShowTimeId(showTimeId)
+                .stream()
+                .map(seat -> new SeatViewResponse(
+                        seat.getId(),
+                        seat.getSeatNumber(),
+                        seat.getPrice(),
+                        seat.getStatus()
+                ))
+                .toList();
+        return ResponseEntity.ok(seats);
+    }
+
+    @GetMapping("/my-tickets")
+    public ResponseEntity<?> getMyTickets(Principal principal) {
+        if (principal == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body("Unauthorized: Missing JWT token");
+        }
+        List<Booking> bookings = bookingRepo.findByUserEmailOrderByCreatedAtDesc(principal.getName());
+        Map<String, List<Booking>> byShowtime = bookings.stream()
+                .collect(Collectors.groupingBy(Booking::getShowtimeId));
+
+        List<MyTicketResponse> tickets = new ArrayList<>();
+        byShowtime.forEach((showtimeId, showtimeBookings) -> {
+            var showtimeOpt = showtimeRepo.findById(showtimeId);
+            String movieTitle = showtimeOpt.map(s -> s.getMovieId()).orElse("Unknown Movie");
+            String showTime = showtimeOpt.map(s -> String.valueOf(s.getStartTime())).orElse("");
+            List<String> seats = showtimeBookings.stream().map(Booking::getSeatNumber).toList();
+            Double total = showtimeBookings.stream().mapToDouble(b -> b.getAmount() == null ? 0.0 : b.getAmount()).sum();
+            BookingStatus latestStatus = showtimeBookings.get(0).getStatus();
+            tickets.add(new MyTicketResponse(
+                    showtimeBookings.get(0).getId(),
+                    movieTitle,
+                    showTime,
+                    seats,
+                    total,
+                    latestStatus.name()
+            ));
+        });
+        return ResponseEntity.ok(tickets);
     }
 }
