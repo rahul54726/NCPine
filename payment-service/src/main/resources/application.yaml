@@ -1,24 +1,25 @@
-razorpay:
-  key:
-    id: rzp_test_your_key_id_here
-    secret: your_key_secret_here
 server:
-  port: 8083
+  port: ${PORT:8083}
+
 spring:
   application:
     name: payment-service
+
   datasource:
-    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5433}/${DB_NAME:cinebook_payment_db}
-    username: ${DB_USERNAME:cinebook}
-    password: ${DB_PASSWORD:cinebook123}
+    # THE FIX: Defaulting to Docker container name 'postgres_db', port 5432, and 'npcine_db'
+    url: jdbc:postgresql://${DB_HOST:postgres_db}:${DB_PORT:5432}/${DB_NAME:npcine_db}
+    username: ${POSTGRES_USER:postgres}
+    password: ${POSTGRES_PASSWORD:dummy_local_db_password}
     driver-class-name: org.postgresql.Driver
     hikari:
-      maximum-pool-size: 10 # Limits DB connections
+      maximum-pool-size: 10
       connection-timeout: 20000
       idle-timeout: 300000
+
   jpa:
     hibernate:
-      ddl-auto: update
+      # THE FIX: Changed to validate for Flyway safety
+      ddl-auto: validate
     show-sql: false
     properties:
       hibernate:
@@ -30,12 +31,25 @@ spring:
     enabled: true
     baseline-on-migrate: true
 
+  # THE FIX: Added RabbitMQ config so Payment Service can send events to Notification Service
+  rabbitmq:
+    host: ${SPRING_RABBITMQ_HOST:rabbitmq_broker}
+    port: ${SPRING_RABBITMQ_PORT:5672}
+    username: ${SPRING_RABBITMQ_USERNAME:guest}
+    password: ${SPRING_RABBITMQ_PASSWORD:guest}
+
+razorpay:
+  key:
+    # THE FIX: Secured Payment Gateway credentials
+    id: ${RAZORPAY_KEY_ID:dummy_rzp_key_id}
+    secret: ${RAZORPAY_KEY_SECRET:dummy_rzp_key_secret}
+
 logging:
   level:
     root: INFO
-    com.rahul.cinebook: DEBUG # Only your app logs in detail
+    com.rahul.cinebook: DEBUG
     org.hibernate.SQL: ERROR
 
-#jwt here
 jwt:
-  secret: 1JwCQ6Ipyd1CxytJccCkB754iRXoRlEly0HujDiqgkRZ4ZlmIUasTMwFhgl9kYep
+  # THE FIX: Removed real JWT secret
+  secret: ${JWT_SECRET_KEY:dummy_local_secret_do_not_use_in_prod}

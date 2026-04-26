@@ -1,4 +1,5 @@
-# 1. EXPLICIT NETWORK: Taaki containers ek dusre ka naam (e.g., 'user-service') easily resolve kar sakein
+version: '3.8'
+
 networks:
   npcine_net:
     driver: bridge
@@ -10,17 +11,17 @@ services:
   postgres_db:
     image: postgres:15-alpine
     container_name: postgres_db
-    restart: unless-stopped # Crash hone par auto-restart
+    restart: unless-stopped
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: root
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: npcine_db
     ports:
       - "5432:5432"
     networks:
       - npcine_net
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d npcine_db"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d npcine_db"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -59,6 +60,7 @@ services:
   # ========================================
   user-service:
     build: ./user-service
+    image: ${DOCKER_USERNAME}/npcine-user-service:latest
     container_name: user-service
     restart: unless-stopped
     ports:
@@ -70,11 +72,11 @@ services:
         condition: service_healthy
     environment:
       - SPRING_RABBITMQ_HOST=rabbitmq_broker
-      - SPRING_MONGODB_URI=${MONGO_CLUSTER_BASE_URI:-mongodb+srv://rahul23256:HkPpPssSIpJPdgUY@cluster0.qe3y3wr.mongodb.net}/user_db?appName=Cluster0
-      - SECURITY_ADMIN_EMAILS=${SECURITY_ADMIN_EMAILS:-admin@npcine.com}
+      - MONGO_URI=${MONGO_URI}/user_db
 
   movies-service:
     build: ./movies-service
+    image: ${DOCKER_USERNAME}/npcine-movies-service:latest
     container_name: movies-service
     restart: unless-stopped
     networks:
@@ -83,10 +85,11 @@ services:
       rabbitmq_broker:
         condition: service_healthy
     environment:
-      - SPRING_DATA_MONGODB_URI=${MONGO_CLUSTER_BASE_URI:-mongodb+srv://rahul23256:HkPpPssSIpJPdgUY@cluster0.qe3y3wr.mongodb.net}/movie_db?appName=Cluster0
+      - MONGO_URI=${MONGO_URI}/movie_db
 
   booking-service:
     build: ./booking-service
+    image: ${DOCKER_USERNAME}/npcine-booking-service:latest
     container_name: booking-service
     restart: unless-stopped
     ports:
@@ -102,8 +105,8 @@ services:
         condition: service_healthy
     environment:
       - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres_db:5432/npcine_db
-      - SPRING_DATASOURCE_USERNAME=postgres
-      - SPRING_DATASOURCE_PASSWORD=root
+      - SPRING_DATASOURCE_USERNAME=${POSTGRES_USER}
+      - SPRING_DATASOURCE_PASSWORD=${POSTGRES_PASSWORD}
       - SPRING_JPA_DATABASE_PLATFORM=org.hibernate.dialect.PostgreSQLDialect
       - SPRING_RABBITMQ_HOST=rabbitmq_broker
       - SPRING_DATA_REDIS_HOST=redis_cache
@@ -111,6 +114,7 @@ services:
 
   payment-service:
     build: ./payment-service
+    image: ${DOCKER_USERNAME}/npcine-payment-service:latest
     container_name: payment-service
     restart: unless-stopped
     ports:
@@ -124,13 +128,14 @@ services:
         condition: service_healthy
     environment:
       - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres_db:5432/npcine_db
-      - SPRING_DATASOURCE_USERNAME=postgres
-      - SPRING_DATASOURCE_PASSWORD=root
+      - SPRING_DATASOURCE_USERNAME=${POSTGRES_USER}
+      - SPRING_DATASOURCE_PASSWORD=${POSTGRES_PASSWORD}
       - SPRING_JPA_DATABASE_PLATFORM=org.hibernate.dialect.PostgreSQLDialect
       - SPRING_RABBITMQ_HOST=rabbitmq_broker
 
   notification-service:
     build: ./notification_service
+    image: ${DOCKER_USERNAME}/npcine-notification-service:latest
     container_name: notification-service
     restart: unless-stopped
     ports:
@@ -144,10 +149,11 @@ services:
       - SPRING_RABBITMQ_HOST=rabbitmq_broker
 
   # ========================================
-  # 3. API GATEWAY (Must start LAST)
+  # 3. API GATEWAY
   # ========================================
   api-gateway:
     build: ./api-gateway
+    image: ${DOCKER_USERNAME}/npcine-api-gateway:latest
     container_name: api-gateway
     restart: unless-stopped
     ports:
@@ -155,7 +161,6 @@ services:
     networks:
       - npcine_net
     depends_on:
-      # THE FIX: Gateway tab tak route nahi kar sakta jab tak services up na hon
       - user-service
       - movies-service
       - booking-service

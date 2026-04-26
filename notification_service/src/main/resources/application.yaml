@@ -1,5 +1,6 @@
 server:
-  port: 8084
+  port: ${PORT:8084}
+
 spring:
   application:
     name: notification_service
@@ -13,8 +14,9 @@ spring:
   mail:
     host: smtp.gmail.com
     port: 587
-    username: vermarahul11034@gmail.com
-    password: jwcysaxtkxgyivws
+    # THE FIX: Secured Gmail credentials behind environment variables
+    username: ${MAIL_USERNAME:dummy_email@gmail.com}
+    password: ${MAIL_PASSWORD:dummy_app_password}
     properties:
       mail:
         smtp:
@@ -27,7 +29,7 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info,metrics,env  # Kon-kon se endpoints open karne hain
+        include: health,info,metrics,env
   endpoint:
     health:
       show-details: always
@@ -35,7 +37,6 @@ management:
     env:
       enabled: true
 
-# Optional: Info endpoint ke liye thodi custom detail
 info:
   app:
     name: "NPCine Notification Service"
