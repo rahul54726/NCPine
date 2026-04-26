@@ -72,7 +72,12 @@ services:
         condition: service_healthy
     environment:
       - SPRING_RABBITMQ_HOST=rabbitmq_broker
+<<<<<<< HEAD
       - MONGO_URI=${MONGO_URI}/user_db
+=======
+      - SPRING_MONGODB_URI= MONGO_CLUSTER_BASE_URI_HERE
+      - SECURITY_ADMIN_EMAILS=${SECURITY_ADMIN_EMAILS:-admin@npcine.com}
+>>>>>>> 5bd9b4d5d8f517f25c7210ac78ca247c88c6b051
 
   movies-service:
     build: ./movies-service
@@ -85,7 +90,11 @@ services:
       rabbitmq_broker:
         condition: service_healthy
     environment:
+<<<<<<< HEAD
       - MONGO_URI=${MONGO_URI}/movie_db
+=======
+      - SPRING_DATA_MONGODB_URI= MONGO_CLUSTER_BASE_URI_HERE
+>>>>>>> 5bd9b4d5d8f517f25c7210ac78ca247c88c6b051
 
   booking-service:
     build: ./booking-service
